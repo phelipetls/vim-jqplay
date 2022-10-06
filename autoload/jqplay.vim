@@ -115,22 +115,83 @@ function s:on_input_changed() abort
     let s:in_timer = s:getopt('delay')->timer_start({_ -> s:run_jq(s:jq_cmd)})
 endfunction
 
-function s:close_cb(channel) abort
-    silent call deletebufline(s:out_buf, 1)
-    redrawstatus!
+function s:close_cb(...) abort
+    if !has("nvim")
+        silent call deletebufline(s:out_buf, 1)
+        redrawstatus!
+    endif
+endfunction
+
+function s:stdout_cb(_, msg, ...) abort
+    if has('nvim')
+        if empty(join(a:msg))
+            return
+        endif
+
+        let l:non_empty_lines = filter(a:msg, {_, val -> !empty(v:val)})
+
+        call nvim_buf_set_lines(
+                \ s:out_buf,
+                \ nvim_buf_line_count(s:out_buf) - 1,
+                \ nvim_buf_line_count(s:out_buf) + len(a:msg),
+                \ 0,
+                \ l:non_empty_lines
+                \ )
+    else
+        call appendbufline(s:out_buf, '$', a:msg)
+    endif
+endfunction
+
+function s:stderr_cb(_, msg, ...) abort
+    if has('nvim')
+        if empty(join(a:msg))
+            return
+        endif
+
+        let l:non_empty_lines = filter(a:msg, {_, val -> !empty(v:val)})
+        let l:formatted_lines = map(l:non_empty_lines, {_, val -> '// ' .. val})
+
+        call nvim_buf_set_lines(s:out_buf, 0, -1, 0, l:formatted_lines)
+    else
+        call appendbufline(s:out_buf, '$', '// ' .. a:msg)
+    endif
 endfunction
 
 function s:run_jq(jq_cmd) abort
     silent call deletebufline(s:out_buf, 1, '$')
 
-    if exists('s:job') && job_status(s:job) ==# 'run'
-        call job_stop(s:job)
+    if exists('s:job')
+        if has('nvim')
+            call jobstop(s:job)
+        else
+            if job_status(s:job) ==# 'run'
+                call job_stop(s:job)
+            endif
+        endif
+    endif
+
+    if has('nvim')
+        let opts = {
+                \ 'on_stdout': funcref('s:stdout_cb'),
+                \ 'on_stderr': funcref('s:stderr_cb'),
+                \ 'on_exit': funcref('s:close_cb'),
+                \ }
+
+        let s:job = jobstart(a:jq_cmd, opts)
+
+        if s:jq_with_input()
+            let s:in_buflines = nvim_buf_get_lines(s:in_buf, 0, nvim_buf_line_count(s:in_buf), 0)
+            call chansend(s:job, join(s:in_buflines))
+            call chanclose(s:job, 'stdin')
+        endif
+
+        return
     endif
 
     let opts = {
             \ 'in_io': 'null',
-            \ 'out_cb': {_,msg -> appendbufline(s:out_buf, '$', msg)},
-            \ 'err_cb': {_,msg -> appendbufline(s:out_buf, '$', '// ' .. msg)},
+            \ 'out_cb': funcref('s:stdout_cb'),
+            \ 'err_cb': funcref('s:stderr_cb'),
             \ 'close_cb': funcref('s:close_cb')
             \ }
 
@@ -146,7 +207,15 @@ function s:run_jq(jq_cmd) abort
 endfunction
 
 function s:jq_stop(...) abort
-    return exists('s:job') ? job_stop(s:job, a:0 ? a:1 : 'term') : ''
+    if !exists('s:job')
+        return ''
+    endif
+
+    if has('nvim')
+        return jobstop(s:job)
+    endif
+
+    return job_stop(s:job, a:0 ? a:1 : 'term')
 endfunction
 
 function s:jq_close(bang) abort

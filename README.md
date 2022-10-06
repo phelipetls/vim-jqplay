@@ -4,8 +4,6 @@ Run [jq][jq] on a json buffer, and interactively update the output window
 whenever the input buffer or the jq filter buffer are modified similar to
 [jqplay.org][jqplay].
 
-**Note:** Plugin requires Vim `>= 8.1.1776` (no Neovim support).
-
 <dl>
   <p align="center">
   <a href="https://asciinema.org/a/276970">

@@ -7,7 +7,7 @@
 " License:      Same as Vim itself (see :h license)
 " ==============================================================================
 
-if exists('g:loaded_jqplay') || !has('patch-8.1.1776') || has('nvim')
+if exists('g:loaded_jqplay') || (!has('nvim') && !has('patch-8.1.1776'))
     finish
 endif
 let g:loaded_jqplay = 1
