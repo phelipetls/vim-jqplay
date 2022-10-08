@@ -78,6 +78,7 @@ entries are supported:
 | `opts`     | Default jq command-line options (like `--tab`).                  | -                                |
 | `autocmds` | Events when jq is invoked.                                       | `['InsertLeave', 'TextChanged']` |
 | `delay`    | Time in ms after which jq is invoked when an event is triggered. | `500`                            |
+| `mods`     | `:h command-modifiers` to open buffers with.                     | -                                |
 
 ### Examples
 
@@ -94,6 +95,10 @@ entries are supported:
    Instead invoke jq manually with `:Jqrun`:
    ```vim
    let g:jqplay = {'opts': '--tab', 'autocmds': []}
+   ```
+3. Open buffers in vertical splits.
+   ```vim
+   let g:jqplay = {'mods': 'vertical'}
    ```
 
 

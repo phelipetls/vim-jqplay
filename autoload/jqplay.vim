@@ -25,7 +25,8 @@ const s:defaults = {
         \ 'exe': exepath('jq'),
         \ 'opts': '',
         \ 'delay': 500,
-        \ 'autocmds': ['InsertLeave', 'TextChanged']
+        \ 'autocmds': ['InsertLeave', 'TextChanged'],
+        \ 'mods': 'split'
         \ }
 
 const s:getopt = {k -> get(g:, 'jqplay', {})->get(k, s:defaults[k])}
@@ -258,7 +259,7 @@ function jqplay#start(mods, args, in_buf) abort
     const winid = win_getid()
 
     " Output buffer
-    const out_buf_mods = get(a:, 'mods', 'split')
+    const out_buf_mods = empty(a:mods) ? s:getopt('mods') : a:mods
     const out_name = 'jq-output://' .. (a:in_buf == -1 ? '' : bufname(a:in_buf))
     let s:out_buf = s:new_scratch(out_name, out_ft, 1, out_buf_mods)
 
