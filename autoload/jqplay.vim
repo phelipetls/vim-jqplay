@@ -45,8 +45,6 @@ function s:warning(...)
 endfunction
 
 function s:new_scratch(bufname, filetype, clean, mods, ...) abort
-    const winid = win_getid()
-
     if bufexists(a:bufname)
         const bufnr = bufnr(a:bufname)
         call setbufvar(bufnr, '&filetype', a:filetype)
@@ -69,7 +67,6 @@ function s:new_scratch(bufname, filetype, clean, mods, ...) abort
     if a:0
         execute 'resize' a:1
     endif
-    call win_gotoid(winid)
     return bufnr
 endfunction
 
@@ -258,13 +255,18 @@ function jqplay#start(mods, args, in_buf) abort
     " Check if -r/--raw-output or -j/--join-output options are passed
     const out_ft = a:args =~# '\v-@1<!-\a*%(r|j)\a*|--%(raw|join)-output>' ? '' : 'json'
 
+    const winid = win_getid()
+
     " Output buffer
+    const out_buf_mods = get(a:, 'mods', 'split')
     const out_name = 'jq-output://' .. (a:in_buf == -1 ? '' : bufname(a:in_buf))
-    let s:out_buf = s:new_scratch(out_name, out_ft, 1, a:mods)
+    let s:out_buf = s:new_scratch(out_name, out_ft, 1, out_buf_mods)
 
     " jq filter buffer
     const filter_name = 'jq-filter://' .. (a:in_buf == -1 ? '' : bufname(a:in_buf))
-    let s:filter_buf = s:new_scratch(filter_name, 'jq', 0, 'botright', 10)
+    let s:filter_buf = s:new_scratch(filter_name, 'jq', 0, 'belowright', 10)
+
+    call win_gotoid(winid)
 
     " Temporary file where jq filter buffer is written to
     let s:filter_file = tempname()
